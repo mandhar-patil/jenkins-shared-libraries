@@ -23,14 +23,14 @@ def call(Map config = [:]) {
             git config user.email "${gitUserEmail}"
         """
         
-        // Update deployment manifests with new image tags - using proper Linux sed syntax
+        // Update deployment manifests (replace laxg66 or mandhar12 → mandhar12)
         sh """
-            # Update main application deployment - note the correct image name is laxg66/easyshop-app
-            sed -i "s|image: mandhar12/easyshop-app:.*|image: mandhar12/easyshop-app:${imageTag}|g" ${manifestsPath}/08-easyshop-deployment.yaml
+            # Update main application deployment
+            sed -i "s|image: .*easyshop-app:.*|image: mandhar12/easyshop-app:${imageTag}|g" ${manifestsPath}/08-easyshop-deployment.yaml
             
             # Update migration job if it exists
             if [ -f "${manifestsPath}/12-migration-job.yaml" ]; then
-                sed -i "s|image: mandhar12/easyshop-migration:.*|image: mandhar12/easyshop-migration:${imageTag}|g" ${manifestsPath}/12-migration-job.yaml
+                sed -i "s|image: .*easyshop-migration:.*|image: mandhar12/easyshop-migration:${imageTag}|g" ${manifestsPath}/12-migration-job.yaml
             fi
             
             # Ensure ingress is using the correct domain
@@ -42,11 +42,10 @@ def call(Map config = [:]) {
             if git diff --quiet; then
                 echo "No changes to commit"
             else
-                # Commit and push changes
                 git add ${manifestsPath}/*.yaml
                 git commit -m "Update image tags to ${imageTag} and ensure correct domain [ci skip]"
                 
-                # Set up credentials for push
+                # Push with credentials
                 git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/mandhar-patil/tws-e-commerce-app_hackathon.git
                 git push origin HEAD:\${GIT_BRANCH}
             fi
