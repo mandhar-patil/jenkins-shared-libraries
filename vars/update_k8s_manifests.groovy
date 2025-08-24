@@ -4,13 +4,13 @@
  * Update Kubernetes manifests with new image tags and push to GitHub
  */
 def call(Map config = [:]) {
-    def imageTag      = config.imageTag      ?: error("Image tag is required")
-    def manifestsPath = config.manifestsPath ?: 'kubernetes'
+    def imageTag       = config.imageTag      ?: error("Image tag is required")
+    def manifestsPath  = config.manifestsPath ?: 'kubernetes'
     def gitCredentials = config.gitCredentials ?: 'github-credentials'
-    def gitUserName   = config.gitUserName   ?: 'Jenkins CI'
-    def gitUserEmail  = config.gitUserEmail  ?: 'jenkins@example.com'
-    def gitRepo       = config.gitRepo       ?: 'github.com/mandhar-patil/tws-e-commerce-app_hackathon.git'
-    def gitBranch     = config.gitBranch     ?: 'master'   // change to 'main' if needed
+    def gitUserName    = config.gitUserName   ?: 'Jenkins CI'
+    def gitUserEmail   = config.gitUserEmail  ?: 'jenkins@example.com'
+    def gitRepo        = config.gitRepo       ?: 'github.com/mandhar-patil/tws-e-commerce-app_hackathon.git'
+    def gitBranch      = config.gitBranch     ?: 'master'   // change to 'main' if needed
 
     echo "Updating Kubernetes manifests with image tag: ${imageTag}"
 
@@ -26,12 +26,12 @@ def call(Map config = [:]) {
 
             echo "Updating manifests in ${manifestsPath}..."
 
-            # Update main app deployment (handle spaces and quotes)
-            sed -i "s|image:[[:space:]]*\\\"*.*easyshop-app:.*\\\"*|image: mandhar12/easyshop-app:${imageTag}|g" ${manifestsPath}/08-easyshop-deployment.yaml
+            # Update main app deployment (match with/without quotes, with/without tag)
+            sed -i "s|image:[[:space:]]*\\\"*.*easyshop-app[^[:space:]]*\\\"*|image: mandhar12/easyshop-app:${imageTag}|g" ${manifestsPath}/08-easyshop-deployment.yaml
 
-            # Update migration job if present
+            # Update migration job if present (same logic)
             if [ -f "${manifestsPath}/12-migration-job.yaml" ]; then
-                sed -i "s|image:[[:space:]]*\\\"*.*easyshop-migration:.*\\\"*|image: mandhar12/easyshop-migration:${imageTag}|g" ${manifestsPath}/12-migration-job.yaml
+                sed -i "s|image:[[:space:]]*\\\"*.*easyshop-migration[^[:space:]]*\\\"*|image: mandhar12/easyshop-migration:${imageTag}|g" ${manifestsPath}/12-migration-job.yaml
             fi
 
             # Update ingress domain if present
@@ -48,7 +48,13 @@ def call(Map config = [:]) {
             else
                 git add ${manifestsPath}/*.yaml
                 git commit -m "Update image tags to ${imageTag} and ensure correct domain [ci skip]"
+
                 git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@${gitRepo}
+
+                # Rebase to avoid push rejection
+                git fetch origin ${gitBranch}
+                git pull --rebase origin ${gitBranch} || true
+
                 git push origin HEAD:${gitBranch}
             fi
         """
