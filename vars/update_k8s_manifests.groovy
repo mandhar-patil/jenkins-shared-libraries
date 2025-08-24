@@ -26,15 +26,15 @@ def call(Map config = [:]) {
 
             echo "Updating manifests in ${manifestsPath}..."
 
-            # Update main app deployment (match with/without quotes, with/without tag)
-            sed -i "s|image:[[:space:]]*\\\"*.*easyshop-app[^[:space:]]*\\\"*|image: mandhar12/easyshop-app:${imageTag}|g" ${manifestsPath}/08-easyshop-deployment.yaml
+            # ✅ Update main app deployment (replace any repo with easyshop-app)
+            sed -i "s|image:[[:space:]]*.*easyshop-app.*|image: mandhar12/easyshop-app:${imageTag}|g" ${manifestsPath}/08-easyshop-deployment.yaml
 
-            # Update migration job if present (same logic)
+            # ✅ Update migration job if present
             if [ -f "${manifestsPath}/12-migration-job.yaml" ]; then
-                sed -i "s|image:[[:space:]]*\\\"*.*easyshop-migration[^[:space:]]*\\\"*|image: mandhar12/easyshop-migration:${imageTag}|g" ${manifestsPath}/12-migration-job.yaml
+                sed -i "s|image:[[:space:]]*.*easyshop-migration.*|image: mandhar12/easyshop-migration:${imageTag}|g" ${manifestsPath}/12-migration-job.yaml
             fi
 
-            # Update ingress domain if present
+            # ✅ Update ingress domain if present
             if [ -f "${manifestsPath}/10-ingress.yaml" ]; then
                 sed -i "s|host:[[:space:]]*.*|host: easyshop.letsdeployit.com|g" ${manifestsPath}/10-ingress.yaml
             fi
@@ -42,7 +42,7 @@ def call(Map config = [:]) {
             echo "Result after update:"
             grep -r "image:" ${manifestsPath} || true
 
-            # Commit + push if changes exist
+            # ✅ Commit + push if changes exist
             if git diff --quiet; then
                 echo "No changes to commit"
             else
@@ -51,7 +51,7 @@ def call(Map config = [:]) {
 
                 git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@${gitRepo}
 
-                # Rebase to avoid push rejection
+                # ✅ Rebase to avoid push rejection
                 git fetch origin ${gitBranch}
                 git pull --rebase origin ${gitBranch} || true
 
